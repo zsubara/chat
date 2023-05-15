@@ -4,6 +4,7 @@ import dao.to.RoomTo;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public interface Chat {
 
@@ -13,7 +14,7 @@ public interface Chat {
 
     Collection<String> getSubscribers(String name);
 
-    void addToHistory(String name, String msg);
+    void addToHistory(String userName, String name, String msg);
 
     List<Entry> getHistory(String name);
     RoomTo getRoom(String name);

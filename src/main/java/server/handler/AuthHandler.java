@@ -51,13 +51,6 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
             String userName = request.getArguments()[0];
             String password = request.getArguments()[1];
 
-            if (repository.contains(userName)) {
-                ctx.writeAndFlush("[SERVER] - " + USER_ALREADY_EXISTS + "\r");
-                ctx.close();
-
-                return;
-            }
-
             if (!authenticator.validateCredentials(repository.get(userName), password)) {
                 ctx.writeAndFlush("[SERVER] - " + INVALID_CREDENTIALS + "\r");
 

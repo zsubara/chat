@@ -30,8 +30,10 @@ public class InMemoryChat implements Chat {
     public synchronized void subscribe(String name, String userName) {
 
         RoomTo room = rooms.get(name);
+        if (room == null)
+            throw new RuntimeException(Constants.NO_ROOM);
         if (room.hasUser(userName)) {
-            throw new RuntimeException(RoomTo.USER_ALREADY_JOINED);
+            throw new RuntimeException(Constants.USER_ALREADY_JOINED);
         }
 
         room.addUser(userName);
@@ -45,8 +47,8 @@ public class InMemoryChat implements Chat {
         return rooms.get(name).subscribers();
     }
 
-    public void addToHistory(String name, String msg) {
-        rooms.get(name).addToHistory(msg);
+    public void addToHistory(String userName, String name, String msg) {
+        rooms.get(name).addToHistory(userName, msg);
     }
 
     public List<Entry> getHistory(String name) {

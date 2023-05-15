@@ -5,7 +5,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 import server.Router;
-import server.session.InMemoryRepository;
 
 public class ClientHandler extends ChannelInboundHandlerAdapter {
 
@@ -20,11 +19,11 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+    public void handlerAdded(ChannelHandlerContext ctx) {
         try {
-            router.accept(InMemoryRepository.buildUser(ctx, userName, password));
+            router.accept(ctx, userName, password);
             ctx.writeAndFlush(String.format("[SERVER] - Welcome %s\r", userName));
-            router.joinLastChannel(userName);
+            router.joinLastChannel(userName, ctx);
         } catch (Exception e) {
             ctx.writeAndFlush(e.getMessage());
             ctx.close();
@@ -32,15 +31,15 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+    public void channelInactive(ChannelHandlerContext ctx) {
         router.close(userName);
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         try {
             CommandRequest req = (CommandRequest) msg;
-            router.receiveMessage(userName, req);
+            router.receiveMessage(userName, req, ctx);
         } finally {
             ReferenceCountUtil.release(msg);
         }

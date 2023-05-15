@@ -2,27 +2,67 @@ package dao.to;
 
 import io.netty.channel.ChannelHandlerContext;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class UserTo {
 
-    private ChannelHandlerContext ctx;
+    private volatile List<ChannelHandlerContext> ctxs = new ArrayList<>();
+    private volatile ChannelHandlerContext senderChannel;
     private volatile String name;
 
     private volatile String password;
 
     private volatile RoomTo roomTo;
+    private volatile boolean newJoiner;
 
     public UserTo(ChannelHandlerContext ctx, String name, String password) {
-        this.ctx = ctx;
+        this.ctxs.add(ctx);
         this.name = name;
         this.password = password;
+        this.senderChannel = ctx;
+    }
+
+    public void addCtx(ChannelHandlerContext ctx) {
+        ctxs.add(ctx);
+    }
+
+    public void setSenderContext(ChannelHandlerContext senderChannel) {
+        this.senderChannel = senderChannel;
     }
 
     public void send(String msg) {
-        ctx.writeAndFlush(msg);
+        for (ChannelHandlerContext ctx : ctxs)
+            ctx.writeAndFlush(msg);
+    }
+
+    public void sendToSameUser(String msg) {
+        for (ChannelHandlerContext ctx : ctxs)
+            if (ctx != senderChannel)
+                ctx.writeAndFlush(msg);
+    }
+
+    public void sendMeOnly(String msg) {
+        for (ChannelHandlerContext ctx : ctxs)
+            if (ctx == senderChannel)
+                ctx.writeAndFlush(msg);
+    }
+
+    public boolean isNewJoiner() {
+        return newJoiner;
+    }
+
+    public void setNewJoiner(boolean newJoiner) {
+        this.newJoiner = newJoiner;
     }
 
     public void terminate() {
-        ctx.close();
+        ctxs.remove(senderChannel);
+        senderChannel.close();
+    }
+
+    public boolean stillActive() {
+        return ctxs.size() > 0;
     }
 
     public String getName() {

@@ -3,11 +3,13 @@ package server.command;
 import command.CommandHandler;
 import dao.to.RoomTo;
 import dao.to.UserTo;
+import io.netty.channel.ChannelHandlerContext;
 import server.chat.Chat;
 import server.chat.Entry;
 import server.session.SessionRepository;
 import util.Constants;
 
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -40,21 +42,44 @@ public class ChatCommand implements CommandHandler {
         }
         String roomName = arguments[0];
 
-        if (user.hasRoom())
+        if (broker.getSubscribers(roomName).contains(user.getName()) && !user.isNewJoiner()) {
+            if (user.getRoom().getName().equals(roomName)) {
+                user.sendMeOnly("[SERVER] - you are already in the same room\r");
+                return;
+            }
+        }
+
+        if (!broker.getSubscribers(roomName).contains(user.getName()))
+            for (String userName : broker.getSubscribers(roomName)) {
+                if (userName.equals(user.getName())) {
+                    continue;
+                }
+                sendJoinNotification(userName, user.getName());
+            }
+
+        if (user.hasRoom()) {
             broker.unsubscribe(user.getRoom().getName(), user.getName());
+            if (!user.getRoom().getName().equals(roomName))
+                for (String userName : broker.getSubscribers(user.getRoom().getName())) {
+                    UserTo usr = repository.get(userName);
+                    usr.send(String.format("[SERVER] - %s has disconnected\r", user.getName()));
+                }
+        }
 
         try {
             broker.subscribe(roomName, user.getName());
+            user.setNewJoiner(false);
         } catch (Exception e) { //@TODO: Throw Specific Exception
-            user.send("[SERVER] - channel does not exist\r");
+            user.sendMeOnly("[SERVER] - " + e.getMessage() + "\r");
             return;
         }
 
         user.setRoom(broker.getRoom(roomName));
 
-        user.send(String.format("[SERVER] - Joined room %s\r", roomName));
+        user.sendMeOnly(String.format("[SERVER] - Joined room %s\r", roomName));
+
         for (Entry msg : broker.getHistory(roomName)) {
-            user.send(String.format("%s [%s]: %s\r", msg.getTime(), user.getName(), msg.getMessage()));
+            user.sendMeOnly(String.format("%s [%s]: %s\r", msg.getTime(), msg.getUserName(), msg.getMessage()));
         }
     }
 
@@ -67,20 +92,13 @@ public class ChatCommand implements CommandHandler {
 
         broker.unsubscribe(user.getRoom().getName(), user.getName());
         for (String userName : broker.getSubscribers(user.getRoom().getName())) {
-            user.send(String.format("[SERVER] - %s has disconnected\r", userName));
+            UserTo usr = repository.get(userName);
+            usr.send(String.format("[SERVER] - %s has disconnected\r", user.getName()));
         }
         user.setRoom(null);
     }
 
     private void disconnect(UserTo user, String[] arguments) {
-
-        if (user.hasRoom()) {
-            broker.unsubscribe(user.getRoom().getName(), user.getName());
-            for (String userName : broker.getSubscribers(user.getRoom().getName())) {
-                user.send(String.format("[SERVER] - %s has disconnected\r", userName));
-            }
-        }
-
         user.terminate();
     }
 
@@ -99,7 +117,7 @@ public class ChatCommand implements CommandHandler {
 
     private void list(UserTo user, String[] arguments) {
 
-        user.send("Channels:" + "\r");
+        user.send("[SERVER] - Active channels:" + "\r");
         for (RoomTo room : broker.getRooms()) {
             user.send(String.format("%s\r", room.getName()));
         }
@@ -116,21 +134,31 @@ public class ChatCommand implements CommandHandler {
         }
 
         String message = arguments[0];
+        user.sendToSameUser(message + "\r"); // send message to all logged devices
         for (String userName : broker.getSubscribers(user.getRoom().getName())) {
             if (userName.equals(user.getName())) {
                 continue;
             }
-            send(userName, message);
+            send(userName, message, user.getName());
         }
-        broker.addToHistory(user.getRoom().getName(), message);
+        broker.addToHistory(user.getName(), user.getRoom().getName(), message);
     }
 
-    private void send(String userName, String msg) {
+    private void send(String userName, String msg, String sender) {
         UserTo user = repository.get(userName);
         if (user == null) {
             return;
         }
 
-        user.send(msg);
+        user.send(String.format("%s [%s]: %s\r", LocalTime.now(), sender, msg));
+    }
+
+    private void sendJoinNotification(String userName, String sender) {
+        UserTo user = repository.get(userName);
+        if (user == null) {
+            return;
+        }
+
+        user.send(String.format("[SERVER] - %s joined your channel\r", sender));
     }
 }

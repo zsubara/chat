@@ -3,6 +3,9 @@ package util;
 public class Constants {
 
     public static final String NO_ACTIVE_CHANNEL = "no active channel";
+    public static final String MAX_USERS_ERROR = "room full";
+    public static final String NO_ROOM = "channel does not exist";
+    public static final String USER_ALREADY_JOINED = "already in the room";
     public static final String CHANNEL_1 = "channel1";
     public static final String CHANNEL_2 = "channel2";
     public static final String CHANNEL_3 = "channel3";
@@ -15,6 +18,6 @@ public class Constants {
     public static final String COMMAND_USERS = "users";
     public static final String COMMAND_PUBLISH = "publish";
 
-    public static final int MAX_USERS_BY_ROOM = 10;
+    public static final int MAX_USERS_BY_ROOM = 2;
     public static final int HISTORY_SIZE = 10;
 }

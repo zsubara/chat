@@ -79,7 +79,6 @@ public class ChatServer {
                             pipeline.addLast("authHandler", new AuthHandler(new Authenticator(), repository, router));
                         }
                     })
-                    .option(ChannelOption.SO_BACKLOG, 5) //@TODO: refuse connections if it already has 5 queued
                     .childOption(ChannelOption.SO_KEEPALIVE, true); // keep their connections open with keepalive packets.
 
             channelFuture = serverBootstrap.bind().sync();

@@ -3,6 +3,7 @@ package server;
 import command.CommandRequest;
 import command.Commander;
 import dao.to.UserTo;
+import io.netty.channel.ChannelHandlerContext;
 import server.chat.Chat;
 import executor.Executor;
 import server.session.SessionRepository;
@@ -24,8 +25,8 @@ public class Router {
         this.sessions = sessions;
     }
 
-    public void accept(UserTo user) {
-        sessions.add(user);
+    public void accept(ChannelHandlerContext ctx, String userName, String password) {
+        sessions.add(ctx, userName, password);
     }
 
     public void close(String userName) {
@@ -34,20 +35,28 @@ public class Router {
             return;
         }
 
-        sessions.remove(userName);
+        //user.terminate();
+        if (user.stillActive())
+            return;
+        //sessions.remove(userName);
         if (user.hasRoom()) {
             broker.unsubscribe(user.getRoom().getName(), userName);
+            for (String name : broker.getSubscribers(user.getRoom().getName())) {
+                UserTo usr = sessions.get(name);
+                usr.send(String.format("[SERVER] - %s has disconnected\r", userName));
+            }
         }
     }
 
-    public void receiveMessage(String userName, CommandRequest cmd) {
+    public void receiveMessage(String userName, CommandRequest cmd, ChannelHandlerContext ctx) {
         UserTo user = sessions.get(userName);
+        user.setSenderContext(ctx);
         if (user == null) {
             return;
         }
 
         if (!commandExecutor.contains(cmd.getCmd())) {
-            user.send("[SERVER] - " + COMMAND_NOT_FOUND + "\r");
+            user.sendMeOnly("[SERVER] - " + COMMAND_NOT_FOUND + "\r");
             return;
         }
 
@@ -56,22 +65,24 @@ public class Router {
             try {
                 commandExecutor.execute(user, cmd);
             } catch (Exception e) {
-                user.send("[SERVER] - " + UNEXPECTED_ERROR + "\r");
+                user.sendMeOnly("[SERVER] - " + UNEXPECTED_ERROR + "\r");
                 e.printStackTrace();
             }
         });
     }
 
-    public void joinLastChannel(String userName) {
+    public void joinLastChannel(String userName, ChannelHandlerContext ctx) {
         executor.execute(() -> {
             UserTo user = sessions.get(userName);
+            user.setSenderContext(ctx);
             if (user.getRoom() == null)
                 return;
+            user.setNewJoiner(true);
             try {
                 String[] args = {user.getRoom().getName()};
                 commandExecutor.execute(user, new CommandRequest("join", args));
             } catch (Exception e) {
-                user.send("[SERVER] - Unable to join last channel\r");
+                user.sendMeOnly("[SERVER] - Unable to join last channel\r");
                 e.printStackTrace();
             }
         });

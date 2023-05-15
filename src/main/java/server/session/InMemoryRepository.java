@@ -4,8 +4,6 @@ import dao.impl.UserDao;
 import dao.to.UserTo;
 import io.netty.channel.ChannelHandlerContext;
 
-import java.util.List;
-
 public class InMemoryRepository implements SessionRepository {
 
     private UserDao users = new UserDao();
@@ -15,8 +13,12 @@ public class InMemoryRepository implements SessionRepository {
         return users.get(userName);
     }
 
-    public void add(UserTo user) {
-        users.save(user);
+    public void add(ChannelHandlerContext ctx, String userName, String password) {
+        if (!users.contains(userName)) {
+            users.save(new UserTo(ctx, userName, password));
+            return;
+        }
+        users.get(userName).addCtx(ctx);
     }
 
     public void remove(String userName) {
@@ -25,9 +27,5 @@ public class InMemoryRepository implements SessionRepository {
 
     public synchronized Boolean contains(String userName) {
         return users.contains(userName);
-    }
-
-    public static UserTo buildUser(ChannelHandlerContext ctx, String userName, String password) {
-        return new UserTo(ctx, userName, password);
     }
 }
