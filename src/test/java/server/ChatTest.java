@@ -30,7 +30,7 @@ public class ChatTest {
     @Test
     public void UnSubscribeToTopicRemovesUserAsSubscriber(){
         InMemoryChat chat = new InMemoryChat(10, 10);
-        String roomName = "room1";
+        String roomName = "channel1";
         chat.subscribe(roomName, "foo");
 
         Collection<String> subscribers =  chat.getSubscribers(roomName);
@@ -46,7 +46,7 @@ public class ChatTest {
     @Test
     public void OnUserAdditionIfAlreadyExistsTrowException(){
         InMemoryChat chat = new InMemoryChat(10, 10);
-        String roomName = "room1";
+        String roomName = "channel1";
         chat.subscribe(roomName, "foo");
 
         try {
@@ -62,7 +62,7 @@ public class ChatTest {
         int maxHistorySize = 3;
         InMemoryChat chat = new InMemoryChat(10, maxHistorySize);
         String userName = "user1";
-        String roomName = "room1";
+        String roomName = "channel1";
         chat.addToHistory(userName, roomName, "msg1");
         chat.addToHistory(userName, roomName, "msg2");
         chat.addToHistory(userName, roomName, "msg3");

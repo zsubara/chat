@@ -37,7 +37,7 @@ public class ServerTest {
             String resA = clientA.readLine();
             Assert.assertTrue(resA.equals("[SERVER] - Welcome foo"));
 
-            // Client A Joins topic
+            // Client A Joins channel
             clientA.write("/join channel1\n");
             resA = clientA.readLine();
             Assert.assertTrue(resA.equals("[SERVER] - Joined room channel1"));
@@ -48,7 +48,7 @@ public class ServerTest {
             String resB = clientB.readLine();
             Assert.assertTrue(resB.equals("[SERVER] - Welcome bar"));
 
-            // Client B Joins topic
+            // Client B Joins channel
             clientB.write("/join channel1\n");
             resB = clientB.readLine();
             Assert.assertTrue(resB.equals("[SERVER] - Joined room channel1"));
@@ -112,7 +112,7 @@ public class ServerTest {
             String resA = clientA.readLine();
             Assert.assertTrue(resA.equals("[SERVER] - Welcome foo"));
 
-            // Client A Joins topic
+            // Client A Joins channel
             clientA.write("/join channel1\n");
             resA = clientA.readLine();
             Assert.assertTrue(resA.equals("[SERVER] - Joined room channel1"));
@@ -123,7 +123,7 @@ public class ServerTest {
             String resB = clientB.readLine();
             Assert.assertTrue(resB.equals("[SERVER] - Welcome bar"));
 
-            // Client B Joins topic
+            // Client B Joins channel
             clientB.write("/join channel1\n");
             resB = clientB.readLine();
             resA = clientA.readLine();
@@ -151,6 +151,37 @@ public class ServerTest {
             clientA.close();
             clientB.close();
             clientC.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void EndToEndTestJoinChannelAndDisconnect() {
+
+        try {
+            Thread.sleep(500L);
+
+            Client client = new Client();
+            client.write("/login foo pass\n");
+            String res = client.readLine();
+            Assert.assertTrue(res.equals("[SERVER] - Welcome foo"));
+
+            // Joins channel
+            client.write("/join channel1\n");
+            res = client.readLine();
+            Assert.assertTrue(res.equals("[SERVER] - Joined room channel1"));
+
+            // disconnect and login again, should be in the same room as before
+            client.write("/disconnect\n");
+            Client client1 = new Client();
+            client1.write("/login foo pass\n");
+            res = client1.readLine(); // welcome
+            res = client1.readLine();
+            Assert.assertTrue(res.equals("[SERVER] - Joined room channel1"));
+
+            // disconnect
+            client.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
