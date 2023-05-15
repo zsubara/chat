@@ -18,6 +18,6 @@ public class Constants {
     public static final String COMMAND_USERS = "users";
     public static final String COMMAND_PUBLISH = "publish";
 
-    public static final int MAX_USERS_BY_ROOM = 2;
+    public static final int MAX_USERS_BY_ROOM = 10;
     public static final int HISTORY_SIZE = 10;
 }
